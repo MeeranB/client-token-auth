@@ -81,6 +81,89 @@ onsubmit: (event) => {
 
 </details>
 
+### Challenge 1 notes: How do we get to this solution?
+
+#### Login function: 
+
+We have to create the back-end login functionality to utilise the login form that is rendered in `app.js`. In order to do this, we must use the fetch API to call the given URL, we would use the `POST` method as we want user data to be sent in the request body, rather than as part of the URL for security reasons. Our login function will currently look like this:
+
+```js
+export function login(email, password) {
+  fetch("https://dogs-rest.herokuapp.com/v1/users/login/", {
+    method: "POST"
+  })
+}
+```
+
+We then need a way to tell the API what data to post, as we are using a `POST` request and therefore cannot include this information in the URL, the way we do this is by setting the body property of the request object. It should be noted that the body property does not accept JSON objects as stated in the documentation, and therefore we have to use the `JSON.stringify` method in order to convert our data object into a string.
+
+Here we have to figure out how the users API expects post request bodies to be formatted in order to send a successful response. We can visit the [API repo](https://github.com/oliverjam/dog-rest-api) in order to see how the API requires log in requests to be sent. Our login function now looks like this:
+
+```js
+export function login(email, password) {
+    fetch("https://dogs-rest.herokuapp.com/v1/users/login/", {
+    method: "POST",
+    body: JSON.stringify({ email, password})
+  })
+}
+```
+
+As the final part of our fetch options, we are reminded that we must ensure that the server knows the content-type of our request, this information is sent in the headers property of our request object, thus making our function look like so:
+
+```js
+export function login(email, password) {
+    fetch("https://dogs-rest.herokuapp.com/v1/users/login/", {
+    method: "POST",
+    body: JSON.stringify({ email, password}),
+    headers: { "content-type":"application/json"}
+  })
+}
+```
+
+Once this request has been completed, we want to look at our response and extract the body of the data. APIs do not respond directly with the required JSON, but with a response object containing the JSON as a property, this is so the API can respond with more information if necessary such as the status of the response.
+
+We can look into our response object to retrieve the JSON data using the .json() method.
+
+```js
+export function login(email, password) {
+    fetch("https://dogs-rest.herokuapp.com/v1/users/login/", {
+    method: "POST",
+    body: JSON.stringify({ email, password}),
+    headers: { "content-type":"application/json"}
+  })
+  .then(res => res.json())
+}
+```
+
+Best practices dictate that we should send an error message if our request was unsuccessful (if res.status was not 200), we do so like this:
+
+```js
+export function login(email, password) {
+  return fetch("https://dogs-rest.herokuapp.com/v1/users/login/", {
+    method: "POST",
+    body: JSON.stringify({ email: email, password: password }),
+    headers: { "content-type": "application/json" },
+  }).then((res) => {
+    if (!res.ok) {
+      const error = new Error("HTTP error");
+      error.status = res.status;
+      throw error;
+    } else {
+      return res.json();
+    }
+  });
+}
+```
+The res.ok property represents a boolean that is true if the status is 200 or false otherwise, if the status is not 200, then we create a new error object and set the status to the response status and throw the error object. Finally we respond with our json.
+
+### Unanswered details
+
+Why is the content type dictated in the header property rather than as a fetch property itself?
+
+Why do we use a JSON method to find the JSON in the response object, as opposed to simply searching for a JSON property in the response object?
+
+How do we call our login function called in our forms' submit handler?
+
 ## Part 2: persisting log in
 
 Browser's store and send cookies automatically, since they're a built-in web feature. Our token is just a random string in a response body, which means we need to do some work to keep it around for future requests.
