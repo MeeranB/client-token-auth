@@ -110,6 +110,8 @@ export function login(email, password) {
 
 As the final part of our fetch options, we are reminded that we must ensure that the server knows the content-type of our request, this information is sent in the headers property of our request object, thus making our function look like so:
 
+The available properties on the request object can be seen in the documentation for the request object constructor [here](https://developer.mozilla.org/en-US/docs/Web/API/Request)
+
 ```js
 export function login(email, password) {
     fetch("https://dogs-rest.herokuapp.com/v1/users/login/", {
@@ -156,14 +158,50 @@ export function login(email, password) {
 ```
 The res.ok property represents a boolean that is true if the status is 200 or false otherwise, if the status is not 200, then we create a new error object and set the status to the response status and throw the error object. Finally we respond with our json.
 
-### Unanswered details
+We use `res.json()` as opposed to `res.json` as there is no json property in our response object, however we do inherit a method that takes the response stream and reads it to completion, the `json()` method is a promise that resolves with the response body in `JSON` object form
 
-Why is the content type dictated in the header property rather than as a fetch property itself?
+Now that we have created a login function that parses our form, posts to a users API and responds with a useful response object, we need to attach this to our form upon it's rendering:
 
-Why do we use a JSON method to find the JSON in the response object, as opposed to simply searching for a JSON property in the response object?
+Our first instinct might be to assign some sort of action attribute to the button that ran our imported login function, so our button would look like this with some parameters passed to the login function to represent our formdata.
 
-How do we call our login function called in our forms' submit handler?
+```html
+<button formaction=login()>Log in</button>
+```
 
+However, upon attempting this, we would discover that there is no way to input the formdata after the submit button is pressed, as our login call is rendered before we give values to be used as parameters to this call, therefore calling
+
+```js
+login(document.getElementByID("email").value), document.getElementByID("password").value))
+```
+
+would call the login functions with empty strings as parameters, which is not what we want.
+
+The correct approach is to edit the onsubmit attribute of the form, as this allows us to gather the formdata after the form is rendered, as the function call value of the onsubmit attribute is only called when the form is submitted.
+
+The approach that the solution took to retrieve the form data is one that I have not yet encountered:
+
+```js
+const email = event.target.elements.email.value
+```
+
+`event` refers to the event object that is created upon clicking the page
+
+`target` is a property of the event object which returns the DOM object that represents the element that triggered the event
+
+`elements` is a property of a DOM object, this is not listed in the console.log of event.target, instead we must use console.dir to see this, this is a HTMLFormControlsCollection object, and goes beyond the scope of this explaination
+
+However we can then get the email input tag and then value of the formdata from this, eventually our onsubmit value will look like so:
+
+```js
+(event) => {
+  const email = event.target.elements.email.value
+  const password = event.target.elements.password.value
+  login(email, password).then((userJSON)=> {
+    console.log(userJSON)
+  })
+}
+
+```
 ## Part 2: persisting log in
 
 Browser's store and send cookies automatically, since they're a built-in web feature. Our token is just a random string in a response body, which means we need to do some work to keep it around for future requests.
